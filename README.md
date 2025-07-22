@@ -1,211 +1,242 @@
-<img src="https://content.partnerpage.io/eyJidWNrZXQiOiJwYXJ0bmVycGFnZS5wcm9kIiwia2V5IjoibWVkaWEvY29udGFjdF9pbWFnZXMvMDUwNGZlYTYtOWIxNy00N2IyLTg1YjUtNmY5YTZjZWU5OTJiLzI1NjhmYjk4LTQwM2ItNGI2OC05NmJiLTE5YTg1MzU3ZjRlMS5wbmciLCJlZGl0cyI6eyJ0b0Zvcm1hdCI6IndlYnAiLCJyZXNpemUiOnsid2lkdGgiOjEyMDAsImhlaWdodCI6NjI3LCJmaXQiOiJjb250YWluIiwiYmFja2dyb3VuZCI6eyJyIjoyNTUsImciOjI1NSwiYiI6MjU1LCJhbHBoYSI6MH19fX0=" alt="AB Tasty logo" width="350"/>
+# 📈 Sending Feature Flag Data from Server-Side (SSR) to Google Analytics 4 (GA4)
 
-# Remix Run Feature Flags Integration with Flagship SDK
-
-This repository demonstrates how to implement server-side feature flags in a Remix Run application using the Flagship SDK, with server-side rendering (SSR) support for better performance and user experience.
+This project integrates **Google Analytics 4 (GA4)** directly in the `root.tsx` file to track user interactions across the app. The tracking code is inserted in the `<head>` of the HTML using the standard GA4 script.
 
 ---
 
-## Overview
+## ✅ Implementation Details
 
-Feature flags allow you to dynamically toggle features and content variations in your application without deploying new code. This guide shows how to integrate Flagship.io feature flags into a Remix Run app, ensuring:
+The GA4 snippet is injected using Remix’s server-rendered `head` logic. Here's how it works:
 
-- Flags are fetched on the server during Remix loaders.
-- Flag data is passed to the client to avoid UI flicker and hydration mismatch.
-- Improved Core Web Vitals and Lighthouse scores by reducing layout shifts and client-side JavaScript.
+### 1. Loading the GA4 Script Asynchronously
+
+```tsx
+<script
+  async
+  src={`https://www.googletagmanager.com/gtag/js?id=\${GA_MEASUREMENT_ID}`}
+  crossOrigin="anonymous"
+/>
+```
+
+### 2. Initializing GA4 with `debug_mode: true`
+
+```tsx
+<script
+  dangerouslySetInnerHTML={{
+    __html: \`
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '\${GA_MEASUREMENT_ID}', {
+        debug_mode: true
+      });
+    \`,
+  }}
+/>
+```
+
+> ⚠️ Only use `debug_mode: true` in development to avoid polluting production analytics.
 
 ---
 
-## How It Works
+## ⚙️ Environment Variable Setup
 
-1. **Flagship SDK Integration**
-
-   - Uses the official `@flagship.io/react-sdk`.
-   - Server-side initialization of the Flagship SDK with environment variables (`FS_ENV_ID`, `FS_API_KEY`).
-   - Creates visitor instances with context to fetch flags.
-
-2. **Remix Loader Usage**
-
-   - In Remix's `loader` function, create a visitor with the Flagship SDK.
-   - Fetch flags on the server before rendering the page.
-   - Use flag values (e.g., recommendation strategy IDs) to fetch dynamic content (like product recommendations) from an API.
-   - Return flag data and related content in the loader JSON response.
-
-3. **Passing Flag Data to Client**
-
-   - Remix automatically serializes the loader data and hydrates it on the client.
-   - This approach prevents UI flickering caused by client-only flag fetches.
-   - The React component uses `useLoaderData()` to access flags and render consistently.
-
-4. **Performance Benefits**
-
-   - **Reduced Cumulative Layout Shift (CLS):** Flags fetched server-side avoid content jumping as UI updates post-load.
-   - **Improved Largest Contentful Paint (LCP):** Content is ready immediately on initial load.
-   - **Minimized JavaScript Execution:** Client JavaScript doesn't need to refetch flags, lowering execution time and improving responsiveness.
-
----
-
-## Setup Instructions
-
-1. **Install dependencies and start dev server**
-
-```bash
-git clone https://github.com/valoudefou/ssr-feature-flag-remix-run.git
-cd ssr-feature-flag-remix-run
+```ts
+const GA_MEASUREMENT_ID = process.env.GA_MEASUREMENT_ID || "G-XXXXXXXXXX";
 ```
-
-```bash
-npm install @flagship.io/react-sdk remix react react-dom
-```
-
-```bash
-npm install
-```
-
-```bash
-npm run dev
-```
-
-2. **Environment variables**
-
-Create a `.env` file or use your deployment environment to set:
 
 ```env
-FS_ENV_ID=your_flagship_env_id
-FS_API_KEY=your_flagship_api_key
-SITE_ID=your_abtasty_site_id
-RECS_BEARER=your_abtasty_recs_bearer_token
+GA_MEASUREMENT_ID=G-XXXXXXXXXX
 ```
 
-3. **Vite configuration (vite.config.js)**
+---
 
-If you use Vite in your Remix project, ensure environment variables are exposed correctly:
+## 🧪 Viewing Debug Data in GA4
 
-```js
-import { defineConfig } from "vite";
-import react from "@vitejs/plugin-react";
+1. Open GA4 property
+2. Go to **Admin > DebugView**
+3. Interact with your Remix app locally
+4. View events in real-time
 
-export default defineConfig({
-  plugins: [react()],
-  define: {
-    "process.env": process.env,
-  },
+---
+
+## 🚩 Server-Side Feature Flag Evaluation (SSR)
+
+This app uses [AB Tasty's Flagship SDK](https://docs.abtasty.com/flagship/) to resolve feature flags on the server.
+
+### 📦 Where It's Done
+
+In [`utils/flagship.server.ts`](./utils/flagship.server.ts):
+- Initializes SDK
+- Creates a visitor with full context
+- Fetches flags server-side
+
+---
+
+### 🧠 Why SSR Feature Flags?
+
+✅ Flags ready before render (no flickering)  
+✅ Easier end-to-end testing  
+✅ No additional client-side tracking needed
+
+---
+
+### 🛠️ How It Works
+
+#### 1. Initializing the SDK
+
+```ts
+Flagship.start(envId, apiKey, {
+  fetchNow: false,
+  decisionMode: DecisionMode.DECISION_API,
+  logLevel: LogLevel.INFO,
 });
 ```
 
-4. **Server-side helper (utils/flagship.server.ts)**
-
-Initialize and start Flagship SDK:
+#### 2. Creating a Visitor & Fetching Flags
 
 ```ts
-import {
-  Flagship,
-  FSSdkStatus,
-  DecisionMode,
-  LogLevel,
-} from "@flagship.io/react-sdk";
+const visitor = flagship.newVisitor({
+  visitorId: 'visitor_1234',
+  hasConsented: true,
+  context: {
+    Session: "Active",
+    UserType: "Premium",
+    someNumber: 42,
+  },
+});
 
-let flagshipInstance: Flagship | null = null;
-
-function requireEnv(name: string): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing environment variable: ${name}`);
-  return value;
-}
-
-export async function startFlagshipSDK(): Promise<Flagship> {
-  if (
-    flagshipInstance &&
-    flagshipInstance.getStatus() !== FSSdkStatus.SDK_NOT_INITIALIZED
-  ) {
-    return flagshipInstance;
-  }
-
-  const envId = requireEnv("FS_ENV_ID");
-  const apiKey = requireEnv("FS_API_KEY");
-
-  flagshipInstance = await Flagship.start(envId, apiKey, {
-    fetchNow: false,
-    decisionMode: DecisionMode.DECISION_API,
-    logLevel: LogLevel.INFO,
-  });
-
-  return flagshipInstance;
-}
-
-export async function getFsVisitorData(visitorData: {
-  id: string;
-  hasConsented: boolean;
-  context: Record<string, any>;
-}) {
-  const flagship = await startFlagshipSDK();
-
-  const visitor = flagship.newVisitor({
-    visitorId: visitorData.id,
-    hasConsented: visitorData.hasConsented,
-    context: visitorData.context,
-  });
-
-  await visitor.fetchFlags();
-  return visitor;
-}
-```
-
-5. **Using flags in your Remix loader (app/routes/index.tsx)**
-
-Fetch flags and use them to load dynamic data on the server:
-
-```ts
-import { json, LoaderFunction } from "@remix-run/node";
-import { useLoaderData } from "@remix-run/react";
-import { getFsVisitorData } from "../utils/flagship.server";
-import { v4 as uuidv4 } from "uuid";
-
-export const loader: LoaderFunction = async ({ request }) => {
-  const visitorId = uuidv4();
-
-  const visitor = await getFsVisitorData({
-    id: visitorId,
-    hasConsented: true,
-    context: {
-      Session: "Returning",
-      INTERNET_CONNECTION: "5g",
-      fs_orders: 3,
-      fs_authenticated: true,
-    },
-  });
-
-  const flag = visitor.getFlag("flagProductRecs");
-  const flagValue = flag?.getValue("default_strategy_id");
-
-  // Use flagValue to fetch recommendations from API...
-
-  return json({ flagValue /*, other data */ });
-};
-
-export default function Index() {
-  const { flagValue } = useLoaderData();
-  return <div>Flag value: {flagValue}</div>;
-}
+await visitor.fetchFlags();
 ```
 
 ---
 
-## Further Reading
+## 🔁 End-to-End SSR to Client Flow with Feature Flags and GA4
 
-- [Flagship.io React SDK Documentation](https://flagship.io/docs/sdk/react)
-- [Remix Run Official Docs](https://remix.run/docs/en/stable)
-- [Improving Core Web Vitals](https://web.dev/vitals/)
-- [AB Tasty Recommendations API](https://docs.abtasty.com/recommendations)
+This app delivers a full SSR-to-client journey:
 
 ---
 
-## Conclusion
+### 🧠 1. Server-Side Feature Evaluation in `loader`
 
-This approach integrates feature flags directly in Remix server loaders using the Flagship SDK, improving performance and UX by avoiding client-only fetches. It ensures consistency between server and client renders and enhances your app’s Core Web Vitals and Lighthouse metrics.
+- Extracts query parameters (e.g., `?Session=Active`)
+- Initializes Flagship visitor with context
+- Fetches flags & recommendation data
+- Passes all info to the client
+
+#### Example:
+
+```ts
+const visitor = await getFsVisitorData({
+  id: "user123",
+  hasConsented: true,
+  context: {
+    Session: "Active",
+    UserType: "Premium",
+    someNumber: 42
+  },
+});
+
+const flag = visitor.getFlag("flagProductRecs");
+const flagValue = flag?.getValue("fallback-uuid");
+```
 
 ---
 
-## License
+### 🚩 Dynamically Modify User Context via URL Query Parameters
 
-MIT © AB Tasty
+You can dynamically simulate different user contexts — and flag values — by passing them in the URL.
+
+#### ✅ Example URL:
+
+```
+https://ssr-feature-flag-remix-run.vercel.app/?Session=Active&UserType=Premium&someNumber=42
+```
+
+This maps directly to the Flagship visitor context:
+
+```ts
+context: {
+  Session: "Active",
+  UserType: "Premium",
+  someNumber: 42
+}
+```
+
+#### 🔄 Benefits
+
+- Simulate any user profile without changing code
+- See different flag variations instantly
+- Easier QA for multiple segmentation scenarios
+- Enables real-world use case simulations for stakeholders
+
+> Try `?Session=Inactive&UserType=Standard&someNumber=7` to see a different variation.
+
+---
+
+### 🎯 2. Feature Execution on the Client
+
+```tsx
+const {
+  flagKey,
+  visitorId,
+  flagMetadata,
+  products,
+  flagValue,
+  ...
+} = useLoaderData<LoaderData>();
+```
+
+If `flagValue` is valid, personalized product recommendations are rendered **immediately** without additional fetching:
+
+```ts
+const recoUrl = `https://uc-info.eu.abtasty.com/v1/reco/${process.env.SITE_ID}/recos/${flagValue}?variables=${query}&fields=${fields}`;
+```
+
+---
+
+### 📊 3. GA4 Event Tracking for A/B Exposure
+
+After rendering, send experiment data to GA4:
+
+```tsx
+window.gtag("event", "ab_test_view", {
+  campaign_id: flagMetadata.campaignId,
+  campaign_name: flagMetadata.campaignName,
+  campaign_type: flagMetadata.campaignType,
+  flag_key: flagKey,
+  visitor_id: visitorId,
+});
+```
+
+---
+
+## 🔒 Required Environment Variables
+
+```env
+GA_MEASUREMENT_ID=G-XXXXXXXXXX
+FS_ENV_ID=xxxxxxxxxxxxxxxx
+FS_API_KEY=xxxxxxxxxxxxxxxx
+SITE_ID=xxxxxxxxx
+RECS_BEARER=your_bearer_token
+```
+
+---
+
+## 🧪 Debugging Tips
+
+- Use `logLevel: LogLevel.DEBUG` in development
+- Watch GA4 DebugView while interacting
+- Log flag values and visitor ID from the loader
+
+---
+
+## 🧵 Summary of the Flow
+
+| Stage         | Action                                                                 |
+|---------------|------------------------------------------------------------------------|
+| Loader (SSR)  | Parse URL params → Init SDK → Fetch Flag → Fetch Recos                 |
+| Output        | `flagValue`, `products`, `visitorId`, `campaignId`, `context`          |
+| Client        | Render UI using server-evaluated flag                                  |
+| GA4 Tracking  | Send `ab_test_view` event with campaign metadata                       |
+| QA            | Test any scenario via query parameters in the browser                  |
