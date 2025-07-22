@@ -285,7 +285,7 @@ export default function Index() {
         `[Error][GA4] Failed to send ab_test_view event: ${String(err)}`
       );
     }
-  }, [flagMetadata, flagKey, visitorId]);
+  }, [flagMetadata, visitorId]);
 
 
 
