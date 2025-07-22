@@ -271,11 +271,13 @@ export default function Index() {
 
   }, [visitorId]);
 
+  const hasSentGAEvent = useRef(false);
+
   // GA4 event sending logic
   useEffect(() => {
     try {
       if (
-        process.env.NODE_ENV !== "production" ||
+        hasSentGAEvent.current ||
         typeof window === "undefined" ||
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
@@ -304,6 +306,7 @@ export default function Index() {
         `[Error][GA4] Failed to send ab_test_view event: ${String(err)}`
       );
     }
+    hasSentGAEvent.current = true;
   }, [flagMetadata, flagKey, visitorId]);
 
 
