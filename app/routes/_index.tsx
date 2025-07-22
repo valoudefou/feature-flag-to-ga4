@@ -308,7 +308,7 @@ export default function Index() {
       setAccount(customAccountValue);
       console.log("🔧 Account set from loader:", customAccountValue);
     }
-  }, [customAccountValue, cart, clickProduct]);
+  }, [customAccountValue]);
 
 
 
