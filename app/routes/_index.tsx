@@ -282,7 +282,7 @@ export default function Index() {
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
       ) {
-        timestampedLog(logs, `[Action][GA4] Skipped sending ab_test_view: gtag not available or missing campaignId`);
+        timestampedLog(logs, `[Action][GA4] Skipped sending ab_test_view: gtag not available, missing campaignId or already sent`);
         return;
       }
 
