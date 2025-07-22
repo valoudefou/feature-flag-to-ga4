@@ -252,30 +252,11 @@ export default function Index() {
     // No space between ] and start of message
     logs.push(`[${time}]${message}`);
   };
-  useEffect(() => {
-
-    const logs: string[] = [];
-
-    const timestampedLog = (message: string) => {
-      const time = new Date().toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      });
-      const entry = `[${time}] ${message}`;
-      logs.push(entry);
-      console.log(entry);
-    };
-
-
-  }, [visitorId]);
 
   // GA4 event sending logic
   useEffect(() => {
     try {
       if (
-        process.env.NODE_ENV !== "production" ||
         typeof window === "undefined" ||
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
