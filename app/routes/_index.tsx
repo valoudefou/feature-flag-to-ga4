@@ -300,6 +300,7 @@ export default function Index() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
+  const [cart, addToCart] = useState(false);
 
   useEffect(() => {
     if (customAccountValue) {
@@ -409,6 +410,7 @@ export default function Index() {
               <article
                 onClick={() => {
                   timestampedLog(logs, `[Action][Data] Data sent to analytics for product ID: ${product.id}, Name: ${product.name}`);
+                  addToCart(true);
                 }}
                 key={product.id}
                 className="group inline-block min-w-[220px] max-w-[240px] bg-white/95 backdrop-blur-sm border border-gray-100 rounded-xl shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300 mx-3 align-top cursor-pointer overflow-hidden"
@@ -430,7 +432,7 @@ export default function Index() {
                     onClick={(e) => {
                       e.stopPropagation();
                       timestampedLog(logs, `[Action][Data] Add to bag clicked for product ID: ${product.id}, Name: ${product.name}`);
-                      // Add-to-cart logic here
+                      addToCart(true);
                     }}
                     className="absolute top-4 p-1 right-4 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-sm transition-all hover:scale-110 active:scale-95 group"
                     aria-label="Add to Bag"
