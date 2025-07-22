@@ -275,6 +275,7 @@ export default function Index() {
   useEffect(() => {
     try {
       if (
+        process.env.NODE_ENV !== "production" ||
         typeof window === "undefined" ||
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
