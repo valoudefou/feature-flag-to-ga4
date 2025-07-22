@@ -308,7 +308,7 @@ export default function Index() {
       setAccount(customAccountValue);
       console.log("🔧 Account set from loader:", customAccountValue);
     }
-  }, [customAccountValue]);
+  }, [customAccountValue, cart, clickProduct]);
 
 
 
@@ -411,7 +411,7 @@ export default function Index() {
               <article
                 onClick={() => {
                   timestampedLog(logs, `[Action][Data] Data sent to analytics for product ID: ${product.id}, Name: ${product.name}`);
-                  addClickProduct(true);
+                  addClickProduct(clickProduct);
                 }}
                 key={product.id}
                 className="group inline-block min-w-[220px] max-w-[240px] bg-white/95 backdrop-blur-sm border border-gray-100 rounded-xl shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300 mx-3 align-top cursor-pointer overflow-hidden"
