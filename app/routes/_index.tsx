@@ -253,15 +253,18 @@ export default function Index() {
     logs.push(`[${time}]${message}`);
   };
 
+  const hasSentGAEvent = useRef(false);
+
   // GA4 event sending logic
   useEffect(() => {
     try {
       if (
+        hasSentGAEvent.current ||
         typeof window === "undefined" ||
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
       ) {
-        timestampedLog(logs, `[Action][GA4] Skipped sending ab_test_view: gtag not available, missing campaignId or already sent`);
+        // timestampedLog(logs, `[Action][GA4] Skipped sending ab_test_view: gtag not available, missing campaignId or already sent`);
         return;
       }
 
@@ -285,7 +288,8 @@ export default function Index() {
         `[Error][GA4] Failed to send ab_test_view event: ${String(err)}`
       );
     }
-  }, [flagMetadata]);
+    hasSentGAEvent.current = true;
+  }, [flagMetadata, flagKey, visitorId]);
 
 
 
