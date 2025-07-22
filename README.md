@@ -6,7 +6,7 @@ This project integrates **Google Analytics 4 (GA4)** directly in the `root.tsx` 
 
 ## ✅ Implementation Details
 
-The GA4 snippet is injected using Remix’s server-rendered `head` logic. Here's how it works:
+The GA4 snippet is injected using app’s server-rendered `head` logic. Here's how it works:
 
 ### 1. Loading the GA4 Script Asynchronously
 
@@ -55,7 +55,7 @@ GA_MEASUREMENT_ID=G-XXXXXXXXXX
 
 1. Open GA4 property
 2. Go to **Admin > DebugView**
-3. Interact with your Remix app locally
+3. Interact with your app locally
 4. View events in real-time
 
 ---
@@ -100,7 +100,7 @@ const visitor = flagship.newVisitor({
   visitorId: 'visitor_1234',
   hasConsented: true,
   context: {
-    Session: "Active",
+    Session: "Returning",
     UserType: "Premium",
     someNumber: 42,
   },
@@ -119,7 +119,7 @@ This app delivers a full SSR-to-client journey:
 
 ### 🧠 1. Server-Side Feature Evaluation in `loader`
 
-- Extracts query parameters (e.g., `?Session=Active`)
+- Extracts query parameters (e.g., `?UserType=Premium`)
 - Initializes Flagship visitor with context
 - Fetches flags & recommendation data
 - Passes all info to the client
@@ -150,7 +150,7 @@ You can dynamically simulate different user contexts — and flag values — by 
 #### ✅ Example URL:
 
 ```
-https://ssr-feature-flag-remix-run.vercel.app/?Session=Active&UserType=Premium&someNumber=42
+https://ssr-feature-flag-remix-run.vercel.app/?Session=Returning&UserType=Premium&someNumber=7
 ```
 
 This maps directly to the Flagship visitor context:
@@ -170,7 +170,7 @@ context: {
 - Easier QA for multiple segmentation scenarios
 - Enables real-world use case simulations for stakeholders
 
-> Try `?Session=Inactive&UserType=Standard&someNumber=7` to see a different variation.
+> Try `?Session=Returning&UserType=Premium&someNumber=7` to see a different variation.
 
 ---
 
