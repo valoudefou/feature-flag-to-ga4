@@ -105,9 +105,11 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     // Load visitor initially with base context
     const visitor = await loader({
-      visitorId: '',
+      id: visitorId,
       hasConsented: true,
-      context: {},
+      context: {
+        Session: "Returning",
+      },
     });
 
     // Update visitor context with URL params if any
@@ -239,7 +241,7 @@ export default function Index() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
-  const [showLogs, setShowLogs] = useState(true);
+  const [showLogs, setShowLogs] = useState(false);
 
   useEffect(() => {
     if (customAccountValue) {
