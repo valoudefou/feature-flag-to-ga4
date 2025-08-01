@@ -2,7 +2,7 @@
 
 import { json, LoaderFunction } from "@remix-run/node";
 import { useLoaderData } from "@remix-run/react";
-import { getFsVisitorData, getFsVisitorData2, getFsVisitorData3 } from "../utils/flagship.server";
+import { getFsVisitorData, getFsVisitorData2, getFsVisitorData3, getFlagshipLogs } from "../utils/flagship.server";
 import React, { useEffect, useRef, useState } from "react";
 
 import { v4 as uuidv4 } from "uuid";
@@ -15,6 +15,13 @@ interface Product {
   price: string | number | null;
 }
 
+interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+  data?: any;
+}
+
 interface LoaderData {
   products: Product[];
   flagValue?: string;
@@ -23,30 +30,16 @@ interface LoaderData {
   visitorId: string;
   flagKey: string;
   userContext: Record<string, any>;
-  logs: string[];
   flagMetadata?: {
     campaignId?: string;
     campaignName?: string;
     campaignType?: string;
   };
+  flagshipLogs: LogEntry[];
 }
 
 export const loader: LoaderFunction = async ({ request }) => {
-  const logs: string[] = [];
-
-  const timestampedLog = (logs: string[], message: string) => {
-    const now = new Date();
-    const time = now.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-    logs.push(`[${time}]${message}`);
-  };
-
   try {
-    timestampedLog(logs, "[Loader][Info] Parsing URL and getting custom flagValue");
     const url = new URL(request.url);
     const customFlagValue = url.searchParams.get("flagValue") || undefined;
     const customAccountValue = String(url.searchParams.get("accountValue") ?? "");
@@ -68,32 +61,25 @@ export const loader: LoaderFunction = async ({ request }) => {
     });
 
     const visitorId = uuidv4();
-    timestampedLog(logs, `[Loader][Info] Generated visitorId: ${visitorId}`);
 
     if (!process.env.SITE_ID || !process.env.RECS_BEARER) {
-      timestampedLog(logs, "[Loader][Info] Missing SITE_ID or RECS_BEARER environment variables");
       throw new Error("Missing SITE_ID or RECS_BEARER environment variables");
     }
-    timestampedLog(logs, "[Loader][Info] Environment variables verified");
 
     type AccountKey = "account-1" | "account-2" | "account-3";
     type VisitorData = any;
     type Visitor = any;
     const accountLoaders: Record<AccountKey, {
       loader: (data: VisitorData) => Promise<Visitor>;
-      log: string;
     }> = {
       "account-1": {
         loader: getFsVisitorData,
-        log: "[Loader][Info] Initializing SDK Val",
       },
       "account-2": {
         loader: getFsVisitorData2,
-        log: "[Loader][Info] Initializing SDK David",
       },
       "account-3": {
         loader: getFsVisitorData3,
-        log: "[Loader][Info] Initializing SDK Ed",
       },
     };
 
@@ -103,9 +89,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     } else if (customAccountValue === "account-3") {
       accountKey = "account-3";
     }
-    const { loader, log } = accountLoaders[accountKey];
-
-    timestampedLog(logs, log);
+    const { loader } = accountLoaders[accountKey];
 
     // Load visitor initially with base context
     const visitor = await loader({
@@ -119,24 +103,13 @@ export const loader: LoaderFunction = async ({ request }) => {
     // Update visitor context with URL params if any
     if (Object.keys(contextParams).length > 0) {
       visitor.updateContext(contextParams);
-      timestampedLog(logs, `[Loader][Info] URL params in use: ${url}`);
       await visitor.fetchFlags();
     }
-
-    timestampedLog(logs, `[Loader][Info] Reading user context: ${visitor.context ? JSON.stringify(visitor.context) : "No context available"}`);
-    timestampedLog(logs, "[Loader][Info] Fetching Flagship visitor data");
-    timestampedLog(logs, "[Loader][Info] Visitor data fetched");
 
     const flag = visitor.getFlag("flagProductRecs");
     const fallbackFlagValue = flag?.getValue("07275641-4a2e-49b2-aa5d-bb4b7b8b2a4c");
     const flagValue = customFlagValue || fallbackFlagValue;
     const flagKey = (flag as any)?._key || "unknown";
-
-    timestampedLog(logs, `[Loader][Info] Flag key fetched: ${flagKey}`);
-    timestampedLog(logs, `[Loader][Info] Using flagValue: ${flagValue}`);
-    timestampedLog(logs, `[Loader][Info] Campaign type: ${JSON.stringify(flag.metadata.campaignType)}`);
-    timestampedLog(logs, `[Loader][Info] Campaign name: ${JSON.stringify(flag.metadata.campaignName)}`);
-    timestampedLog(logs, `[Loader][Info] CampaignId: ${JSON.stringify(flag.metadata.campaignId)}`);
 
     const query = JSON.stringify({ viewing_item: "456" });
     const fields = JSON.stringify(["id", "name", "img_link", "price"]);
@@ -146,7 +119,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     if (flagValue) {
       try {
-        timestampedLog(logs, `[Loader][Info] Fetching recommendations for flagValue ${flagValue}`);
         const recoUrl = `https://uc-info.eu.abtasty.com/v1/reco/${process.env.SITE_ID}/recos/${flagValue}?variables=${encodeURIComponent(
           query
         )}&fields=${encodeURIComponent(fields)}`;
@@ -158,25 +130,16 @@ export const loader: LoaderFunction = async ({ request }) => {
         });
 
         if (!res.ok) {
-          const errorText = await res.text();
-          timestampedLog(logs, `[Loader][Info] Failed to fetch recommendations: ${res.status} ${res.statusText} - ${errorText}`);
           blockName = "Our Top Picks For You";
         } else {
           const data = await res.json();
           products = data.items || [];
           blockName = data.name || "Our Top Picks For You";
-          timestampedLog(logs, `[Loader][Info] Recommendations fetched: ${products.length}`);
-          timestampedLog(logs, `[Loader][Info] Block name: ${blockName}`);
-          if (Object.keys(contextParams).length > 0) {
-            timestampedLog(logs, `[Loader][Info] Updated visitor context with URL params: ${JSON.stringify(contextParams)}`);
-          }
         }
       } catch (err) {
-        timestampedLog(logs, `[Loader][Info] Recommendation API fetch error: ${String(err)}`);
         blockName = "Our Top Picks For You";
       }
     } else {
-      timestampedLog(logs, "[Loader][Info] No flagValue provided, using default block name");
       blockName = "Our Top Picks For You";
     }
 
@@ -185,6 +148,9 @@ export const loader: LoaderFunction = async ({ request }) => {
       campaignName: flag?.metadata.campaignName,
       campaignType: flag?.metadata.campaignType,
     };
+
+    // Get flagship logs
+    const flagshipLogs = getFlagshipLogs();
 
     return json<LoaderData>(
       {
@@ -195,12 +161,12 @@ export const loader: LoaderFunction = async ({ request }) => {
         customAccountValue,
         flagKey,
         userContext: visitor.context,
-        logs,
         flagMetadata: {
           campaignId: flagMetadata.campaignId,
           campaignName: flagMetadata.campaignName,
           campaignType: flagMetadata.campaignType,
         },
+        flagshipLogs,
       },
       {
         headers: {
@@ -209,7 +175,6 @@ export const loader: LoaderFunction = async ({ request }) => {
       }
     );
   } catch (error) {
-    timestampedLog(logs, `[Loader] Loader error: ${String(error)}`);
     return json<LoaderData>({
       products: [],
       flagValue: undefined,
@@ -218,13 +183,10 @@ export const loader: LoaderFunction = async ({ request }) => {
       flagKey: "",
       customAccountValue: null,
       userContext: {},
-      logs,
+      flagshipLogs: [],
     });
   }
 };
-
-
-
 
 // Main React component for the page
 export default function Index() {
@@ -235,36 +197,18 @@ export default function Index() {
     products,
     flagValue,
     blockName,
-    logs,
     customAccountValue,
+    flagshipLogs,
   } = useLoaderData<LoaderData>();
-  const timestampedLog = (logs: string[], message: string) => {
-    const now = new Date();
-
-    // Format: "18:46:32"
-    const time = now.toLocaleTimeString("en-GB", {
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-      hour12: false,
-    });
-
-    // No space between ] and start of message
-    logs.push(`[${time}]${message}`);
-  };
-
-  const hasSentGAEvent = useRef(false);
 
   // GA4 event sending logic
   useEffect(() => {
     try {
       if (
-        hasSentGAEvent.current ||
         typeof window === "undefined" ||
         typeof window.gtag !== "function" ||
         !flagMetadata?.campaignId
       ) {
-        // timestampedLog(logs, `[Action][GA4] Skipped sending ab_test_view: gtag not available, missing campaignId or already sent`);
         return;
       }
 
@@ -277,40 +221,21 @@ export default function Index() {
       };
 
       window.gtag("event", "ab_test_view", eventData);
-
-      timestampedLog(
-        logs,
-        `[Action][GA4] SENDING DATA window.gtag("event", "ab_test_view", ${JSON.stringify(eventData)})`
-      );
     } catch (err) {
-      timestampedLog(
-        logs,
-        `[Error][GA4] Failed to send ab_test_view event: ${String(err)}`
-      );
+      // Silent error handling
     }
-    hasSentGAEvent.current = true;
   }, [flagMetadata, flagKey, visitorId]);
-
-
-
-
-
-
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
-  const [cart, addToCart] = useState(false);
-  const [clickProduct, addClickProduct] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
 
   useEffect(() => {
     if (customAccountValue) {
       setAccount(customAccountValue);
-      console.log("🔧 Account set from loader:", customAccountValue);
     }
   }, [customAccountValue]);
-
-
 
   // State for carousel scroll buttons
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -350,12 +275,146 @@ export default function Index() {
     });
   };
 
+  const getLogLevelColor = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'error':
+        return 'text-red-400';
+      case 'warn':
+        return 'text-yellow-400';
+      case 'info':
+        return 'text-blue-400';
+      case 'debug':
+        return 'text-gray-400';
+      default:
+        return 'text-green-400';
+    }
+  };
+
+  const getLogLevelBg = (level: string) => {
+    switch (level.toLowerCase()) {
+      case 'error':
+        return 'bg-red-900/20';
+      case 'warn':
+        return 'bg-yellow-900/20';
+      case 'info':
+        return 'bg-blue-900/20';
+      case 'debug':
+        return 'bg-gray-900/20';
+      default:
+        return 'bg-green-900/20';
+    }
+  };
+
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
+      {/* Developer Logs Section */}
+      <div className="bg-gray-900 border-b border-gray-700">
+        <div className="flex items-center justify-between px-6 py-3">
+          <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-2">
+              <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
+              </svg>
+              <h2 className="text-sm font-mono font-semibold text-white">
+                Flagship Logs
+              </h2>
+            </div>
+            <div className="flex items-center space-x-2 text-xs text-gray-400">
+              <span className="px-2 py-1 bg-gray-800 rounded">
+                {flagshipLogs.length} entries
+              </span>
+              <span className="px-2 py-1 bg-gray-800 rounded">
+                Account: {customAccountValue || 'account-1'}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => setShowLogs(!showLogs)}
+            className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-md transition-colors duration-150"
+          >
+            <span>{showLogs ? 'Hide' : 'Show'} Logs</span>
+            <svg
+              className={`w-4 h-4 transition-transform duration-200 ${showLogs ? 'rotate-180' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        </div>
+
+        {showLogs && (
+          <div className="border-t border-gray-700 bg-gray-950">
+            <div className="max-h-96 overflow-y-auto">
+              {flagshipLogs.length === 0 ? (
+                <div className="p-6 text-center text-gray-500">
+                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  <p className="text-sm">No logs available</p>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-800">
+                  {flagshipLogs.map((log, index) => (
+                    <div key={index} className={`p-4 hover:bg-gray-900/50 transition-colors duration-150 ${getLogLevelBg(log.level)}`}>
+                      <div className="flex items-start space-x-3">
+                        <div className="flex-shrink-0">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getLogLevelColor(log.level)} bg-current bg-opacity-10`}>
+                            {log.level.toUpperCase()}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between mb-1">
+                            <p className="text-sm font-medium text-white truncate">
+                              {log.message}
+                            </p>
+                            <time className="text-xs text-gray-400 font-mono">
+                              {new Date(log.timestamp).toLocaleTimeString()}
+                            </time>
+                          </div>
+                          {log.data && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+                                View data
+                              </summary>
+                              <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700">
+                                {JSON.stringify(log.data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {flagshipLogs.length > 0 && (
+              <div className="border-t border-gray-700 px-6 py-3 bg-gray-900">
+                <div className="flex items-center justify-between text-xs text-gray-400">
+                  <span>
+                    Showing {flagshipLogs.length} log {flagshipLogs.length === 1 ? 'entry' : 'entries'}
+                  </span>
+                  <button
+                    onClick={() => window.location.reload()}
+                    className="flex items-center space-x-1 hover:text-gray-300 transition-colors duration-150"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span>Refresh</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Recommendations Block */}
       <section aria-label="Product recommendations" className="p-8 py-10 flex flex-col">
-
-
 
         <h1 className="py-4 px-4 text-3xl font-bold mb-4 text-gray-900">{blockName}</h1>
 
@@ -409,10 +468,6 @@ export default function Index() {
             {/* Render each product as a card */}
             {products.map((product: Product) => (
               <article
-                onClick={() => {
-                  timestampedLog(logs, `[Action][Data] Data sent to analytics for product ID: ${product.id}, Name: ${product.name}`);
-                  addClickProduct(clickProduct);
-                }}
                 key={product.id}
                 className="group inline-block min-w-[220px] max-w-[240px] bg-white/95 backdrop-blur-sm border border-gray-100 rounded-xl shadow-sm hover:shadow-xl hover:border-gray-200 transition-all duration-300 mx-3 align-top cursor-pointer overflow-hidden"
               >
@@ -432,8 +487,7 @@ export default function Index() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      timestampedLog(logs, `[Action][Data] Add to bag clicked for product ID: ${product.id}, Name: ${product.name}`);
-                      addToCart(true);
+                      // Add-to-cart logic here
                     }}
                     className="absolute top-4 p-1 right-4 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-white/90 backdrop-blur-md shadow-sm transition-all hover:scale-110 active:scale-95 group"
                     aria-label="Add to Bag"
@@ -450,7 +504,6 @@ export default function Index() {
                       <path d="M16 8V6a4 4 0 00-8 0v2" />
                     </svg>
                   </button>
-
 
                   {/* Subtle overlay on hover */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -488,62 +541,6 @@ export default function Index() {
 
           </div>
         </div>
-
-
-
-        {/* Debug info block */}
-        <div className="flex-grow mt-8 mx-4 mb-4 bg-gray-900/95 backdrop-blur-sm border border-gray-700/50 rounded-xl shadow-2xl overflow-hidden">
-          {/* Header */}
-          <div className="px-6 py-4 bg-gradient-to-r from-gray-800 to-gray-900 border-b border-gray-700/50">
-            <div className="flex items-center gap-3">
-              <div className="w-3 h-3 rounded-full bg-green-400 animate-pulse"></div>
-              <h3 className="text-sm font-semibold text-gray-200 tracking-wide uppercase">
-                Server Debug Info
-              </h3>
-              <div className="ml-auto text-xs text-gray-400 font-mono">
-                {logs.length} entries
-              </div>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="relative">
-            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-gray-800/50">
-              <div className="p-4 space-y-1">
-                {logs.slice().reverse().map((log, i) => (
-                  <div
-                    key={i}
-                    className="group relative px-3 py-2 text-sm font-mono text-green-300 bg-gray-800/30 hover:bg-gray-800/50 rounded-md border border-transparent hover:border-gray-700/50 transition-all duration-150 select-text"
-                  >
-                    <div className="absolute left-1 top-2 w-1 h-4 bg-green-400/30 rounded-full group-hover:bg-green-400/50 transition-colors"></div>
-                    <div className="pl-4 whitespace-pre-wrap break-all">
-                      {log}
-                    </div>
-                  </div>
-                ))}
-
-                {logs.length === 0 && (
-                  <div className="flex items-center justify-center py-12 text-gray-500">
-                    <div className="text-center">
-                      <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-gray-800 flex items-center justify-center">
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-sm font-medium">No debug logs yet</p>
-                      <p className="text-xs text-gray-600 mt-1">Logs will appear here as they're generated</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Fade overlay for better UX when scrolling */}
-            <div className="absolute bottom-0 left-0 right-0 h-4 bg-gradient-to-t from-gray-900/95 to-transparent pointer-events-none"></div>
-          </div>
-        </div>
-
-
 
         {/* Floating bottom-right form for changing flag value */}
         <div className="fixed bottom-6 right-6 w-80 bg-white/95 backdrop-blur-sm border border-gray-200 rounded-xl shadow-xl p-6 z-50 transition-all duration-200 hover:shadow-2xl">
@@ -634,8 +631,6 @@ export default function Index() {
             </form>
           )}
         </div>
-
-
 
       </section>
     </main>

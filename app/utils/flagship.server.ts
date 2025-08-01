@@ -6,6 +6,62 @@ import {
   Visitor,
 } from "@flagship.io/react-sdk";
 
+// Array to store Flagship logs for debug display
+const flagshipLogs: {
+  timestamp: string;
+  level: string;
+  message: string;
+}[] = [];
+
+export interface LogEntry {
+  timestamp: string;
+  level: string;
+  message: string;
+  data?: any;
+}
+
+// Custom LogManager that captures logs into the flagshipLogs array
+const customLogManager = {
+  emergency(message: string, tag?: string) {
+    this.log(LogLevel.EMERGENCY, message, tag);
+  },
+  alert(message: string, tag?: string) {
+    this.log(LogLevel.ALERT, message, tag);
+  },
+  critical(message: string, tag?: string) {
+    this.log(LogLevel.CRITICAL, message, tag);
+  },
+  error(message: string, tag?: string) {
+    this.log(LogLevel.ERROR, message, tag);
+  },
+  warning(message: string, tag?: string) {
+    this.log(LogLevel.WARNING, message, tag);
+  },
+  notice(message: string, tag?: string) {
+    this.log(LogLevel.NOTICE, message, tag);
+  },
+  info(message: string, tag?: string) {
+    this.log(LogLevel.INFO, message, tag);
+  },
+  debug(message: string, tag?: string) {
+    this.log(LogLevel.DEBUG, message, tag);
+  },
+  log(level: LogLevel, message: string, tag?: string) {
+    const timestamp = new Date().toLocaleTimeString("en-GB", {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: false,
+    });
+    flagshipLogs.push({
+      timestamp,
+      level: LogLevel[level],
+      message: tag ? `[${tag}] ${message}` : message,
+    });
+  },
+};
+
+
 type VisitorData = {
   id: string;
   hasConsented: boolean;
@@ -13,6 +69,7 @@ type VisitorData = {
 };
 
 let flagshipInstance: Flagship | null = null;
+let flagshipPromise: Promise<Flagship> | null = null;
 
 // Helper to require environment variables
 function requireEnv(name: string): string {
@@ -29,11 +86,12 @@ async function initializeFlagship(
   return Flagship.start(envId, apiKey, {
     fetchNow: false,
     decisionMode: DecisionMode.DECISION_API,
-    logLevel: LogLevel.INFO,
+    logLevel: LogLevel.ALL,
+    logManager: customLogManager
   });
 }
 
-// Gets or creates the singleton Flagship instance
+// Gets or creates the singleton Flagship instance with race-safe promise caching
 async function getSingletonFlagship(): Promise<Flagship> {
   if (
     flagshipInstance &&
@@ -42,10 +100,16 @@ async function getSingletonFlagship(): Promise<Flagship> {
     return flagshipInstance;
   }
 
-  const envId = requireEnv("FS_ENV_ID");
-  const apiKey = requireEnv("FS_API_KEY");
-  flagshipInstance = await initializeFlagship(envId, apiKey);
-  return flagshipInstance;
+  if (!flagshipPromise) {
+    const envId = requireEnv("FS_ENV_ID");
+    const apiKey = requireEnv("FS_API_KEY");
+    flagshipPromise = initializeFlagship(envId, apiKey).then((fs) => {
+      flagshipInstance = fs;
+      return fs;
+    });
+  }
+
+  return flagshipPromise;
 }
 
 // Creates and fetches visitor flags from a given Flagship instance
@@ -84,3 +148,12 @@ export async function getFsVisitorData3(data: VisitorData): Promise<Visitor> {
   const freshInstance = await initializeFlagship(envId, apiKey);
   return createVisitorAndFetchFlags(freshInstance, data);
 }
+
+// Helper to get the string name of a log level (e.g., "ALL")
+export const logLevelName = (level: LogLevel) => LogLevel[level];
+
+// In flagship.server.ts
+export function getFlagshipLogs(): LogEntry[] {
+  return flagshipLogs; // Your existing logs array
+}
+
