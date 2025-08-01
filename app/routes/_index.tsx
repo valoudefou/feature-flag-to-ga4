@@ -241,7 +241,7 @@ export default function Index() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
+  const [showLogs, setShowLogs] = useState(true);
 
   useEffect(() => {
     if (customAccountValue) {
