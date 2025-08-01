@@ -22,6 +22,18 @@ interface LogEntry {
   data?: any;
 }
 
+type Props = {
+  flagshipLogs: LogEntry[];
+};
+
+const formatTimestamp = (iso: string) => {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) {
+    return new Date().toLocaleTimeString('en-GB', { hour12: false });
+  }
+  return d.toLocaleTimeString('en-GB', { hour12: false });
+};
+
 interface LoaderData {
   products: Product[];
   flagValue?: string;
@@ -229,7 +241,7 @@ export default function Index() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
-  const [showLogs, setShowLogs] = useState(true);
+  const [showLogs, setShowLogs] = useState(false);
 
   useEffect(() => {
     if (customAccountValue) {
@@ -288,7 +300,7 @@ export default function Index() {
                 <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
               </svg>
               <h2 className="text-sm font-mono font-semibold text-white">
-                Flagship Logs
+                Server Logs
               </h2>
             </div>
             <div className="flex items-center space-x-2 text-xs text-gray-400">
@@ -317,13 +329,16 @@ export default function Index() {
         {showLogs && (
           <section
             aria-label="Flagship Logs"
-            className="border-t border-gray-700 bg-gray-950"
+            className="border-t border-gray-700 bg-gray-950 w-full mx-auto flex flex-col rounded-md shadow-lg"
           >
-            <div className="max-h-96 overflow-y-auto">
+            <div
+              className="overflow-y-auto px-3 py-3 flex-grow min-h-[300px] max-h-[30vh]"
+              style={{ scrollbarGutter: 'stable' }} // avoid layout shift when scrollbar appears
+            >
               {flagshipLogs.length === 0 ? (
-                <div className="p-6 text-center text-gray-500">
+                <div className="flex flex-col items-center justify-center h-full text-gray-500">
                   <svg
-                    className="w-8 h-8 mx-auto mb-2 text-gray-600"
+                    className="w-10 h-10 mb-3 text-gray-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -342,73 +357,68 @@ export default function Index() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-800">
-                  {flagshipLogs.map((log, index) => (
-                    <article
-                      key={index}
-                      className='p-2'
-                      role="listitem"
-                      tabIndex={0}
-                    >
-                      <div className="space-x-3">
-                        <div className="flex-shrink-0">
-                        </div>
+                  {flagshipLogs.slice().reverse().map((log, index) => {
+                    const timestamp = formatTimestamp(log.timestamp);
 
-                        <div className="flex items-center justify-between">
-                          <p className="text-green-300 text-sm">
-                            {'[' + log.level + '] ' + log.message}
+                    return (
+                      <article
+                        key={index}
+                        className="p-2 hover:bg-gray-900 rounded-md focus-within:ring-2 focus-within:ring-indigo-500"
+                        role="listitem"
+                        tabIndex={0}
+                      >
+                        <div>
+                          <p className="text-green-400 text-sm font-mono break-words">
+                            [{timestamp}] [{log.level}] {log.message}
                           </p>
 
+                          {log.data && (
+                            <details className="mt-2" aria-live="polite">
+                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+                                View data
+                              </summary>
+                              <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700 whitespace-pre-wrap max-h-48">
+                                {JSON.stringify(log.data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
                         </div>
-                        {log.data && (
-                          <details className="mt-2" aria-live="polite">
-                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
-                              View data
-                            </summary>
-                            <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700 whitespace-pre-wrap">
-                              {JSON.stringify(log.data, null, 2)}
-                            </pre>
-                          </details>
-                        )}
-
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               )}
             </div>
 
             {flagshipLogs.length > 0 && (
-              <footer className="border-t border-gray-700 px-6 py-3 bg-gray-900">
-                <div className="flex items-center text-xs text-gray-400">
-                  {/* other stuff here */}
-
-                  <button
-                    onClick={() => window.location.reload()}
-                    className="ml-auto flex items-center space-x-1 hover:text-gray-300 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 rounded"
-                    aria-label="Refresh logs"
+              <footer className="border-t border-gray-700 bg-gray-900 px-6 py-3 flex items-center text-xs text-gray-400 flex-shrink-0">
+                {/* Add other footer elements here if needed */}
+                <button
+                  onClick={() => window.location.reload()}
+                  className="ml-auto flex items-center space-x-2 hover:text-gray-300 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 rounded"
+                  aria-label="Refresh logs"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
                   >
-                    <svg
-                      className="w-3 h-3"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      aria-hidden="true"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                      />
-                    </svg>
-                    <span>Refresh</span>
-                  </button>
-                </div>
-
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                    />
+                  </svg>
+                  <span>Refresh</span>
+                </button>
               </footer>
             )}
           </section>
         )}
+
 
       </div>
 
