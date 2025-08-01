@@ -229,7 +229,7 @@ export default function Index() {
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
-  const [showLogs, setShowLogs] = useState(false);
+  const [showLogs, setShowLogs] = useState(true);
 
   useEffect(() => {
     if (customAccountValue) {
@@ -275,35 +275,7 @@ export default function Index() {
     });
   };
 
-  const getLogLevelColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'error':
-        return 'text-red-400';
-      case 'warn':
-        return 'text-yellow-400';
-      case 'info':
-        return 'text-blue-400';
-      case 'debug':
-        return 'text-gray-400';
-      default:
-        return 'text-green-400';
-    }
-  };
 
-  const getLogLevelBg = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'error':
-        return 'bg-red-900/20';
-      case 'warn':
-        return 'bg-yellow-900/20';
-      case 'info':
-        return 'bg-blue-900/20';
-      case 'debug':
-        return 'bg-gray-900/20';
-      default:
-        return 'bg-green-900/20';
-    }
-  };
 
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
@@ -323,9 +295,7 @@ export default function Index() {
               <span className="px-2 py-1 bg-gray-800 rounded">
                 {flagshipLogs.length} entries
               </span>
-              <span className="px-2 py-1 bg-gray-800 rounded">
-                Account: {customAccountValue || 'account-1'}
-              </span>
+
             </div>
           </div>
           <button
@@ -345,72 +315,101 @@ export default function Index() {
         </div>
 
         {showLogs && (
-          <div className="border-t border-gray-700 bg-gray-950">
+          <section
+            aria-label="Flagship Logs"
+            className="border-t border-gray-700 bg-gray-950"
+          >
             <div className="max-h-96 overflow-y-auto">
               {flagshipLogs.length === 0 ? (
                 <div className="p-6 text-center text-gray-500">
-                  <svg className="w-8 h-8 mx-auto mb-2 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  <svg
+                    className="w-8 h-8 mx-auto mb-2 text-gray-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    aria-hidden="true"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
                   </svg>
-                  <p className="text-sm">No logs available</p>
+                  <p className="text-sm" role="status" aria-live="polite">
+                    No logs available
+                  </p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-800">
                   {flagshipLogs.map((log, index) => (
-                    <div key={index} className={`p-4 hover:bg-gray-900/50 transition-colors duration-150 ${getLogLevelBg(log.level)}`}>
-                      <div className="flex items-start space-x-3">
+                    <article
+                      key={index}
+                      className='p-2'
+                      role="listitem"
+                      tabIndex={0}
+                    >
+                      <div className="space-x-3">
                         <div className="flex-shrink-0">
-                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getLogLevelColor(log.level)} bg-current bg-opacity-10`}>
-                            {log.level.toUpperCase()}
-                          </span>
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm font-medium text-white truncate">
-                              {log.message}
-                            </p>
-                            <time className="text-xs text-gray-400 font-mono">
-                              {new Date(log.timestamp).toLocaleTimeString()}
-                            </time>
-                          </div>
-                          {log.data && (
-                            <details className="mt-2">
-                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
-                                View data
-                              </summary>
-                              <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700">
-                                {JSON.stringify(log.data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
+
+                        <div className="flex items-center justify-between">
+                          <p className="text-green-300 text-sm">
+                            {'[' + log.level + '] ' + log.message}
+                          </p>
+
                         </div>
+                        {log.data && (
+                          <details className="mt-2" aria-live="polite">
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+                              View data
+                            </summary>
+                            <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700 whitespace-pre-wrap">
+                              {JSON.stringify(log.data, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+
                       </div>
-                    </div>
+                    </article>
                   ))}
                 </div>
               )}
             </div>
 
             {flagshipLogs.length > 0 && (
-              <div className="border-t border-gray-700 px-6 py-3 bg-gray-900">
-                <div className="flex items-center justify-between text-xs text-gray-400">
-                  <span>
-                    Showing {flagshipLogs.length} log {flagshipLogs.length === 1 ? 'entry' : 'entries'}
-                  </span>
+              <footer className="border-t border-gray-700 px-6 py-3 bg-gray-900">
+                <div className="flex items-center text-xs text-gray-400">
+                  {/* other stuff here */}
+
                   <button
                     onClick={() => window.location.reload()}
-                    className="flex items-center space-x-1 hover:text-gray-300 transition-colors duration-150"
+                    className="ml-auto flex items-center space-x-1 hover:text-gray-300 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 rounded"
+                    aria-label="Refresh logs"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    <svg
+                      className="w-3 h-3"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                      />
                     </svg>
                     <span>Refresh</span>
                   </button>
                 </div>
-              </div>
+
+              </footer>
             )}
-          </div>
+          </section>
         )}
+
       </div>
 
       {/* Recommendations Block */}
