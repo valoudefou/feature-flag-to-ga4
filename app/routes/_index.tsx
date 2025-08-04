@@ -260,8 +260,9 @@ export default function Index() {
         campaign_id: flagMetadata.campaignId,
         campaign_name: flagMetadata.campaignName,
         campaign_type: flagMetadata.campaignType,
+        variation_name: flagMetadata.variationName,
         flag_key: flagKey,
-        flag_value: flagMetadata.variationName,
+        flag_value: flagValue,
         visitor_id: visitorId,
       };
 
