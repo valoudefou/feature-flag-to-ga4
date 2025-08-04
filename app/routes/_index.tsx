@@ -258,15 +258,37 @@ export default function Index() {
       };
 
       window.gtag("event", "ab_test_view", eventData);
+
+      setClientLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          level: "info",
+          message: "Sent GA4 event ab_test_view",
+          data: eventData,
+        },
+      ]);
     } catch (err) {
-      // Silent error handling
+      setClientLogs((prev) => [
+        ...prev,
+        {
+          timestamp: new Date().toISOString(),
+          level: "error",
+          message: "Failed to send GA4 event ab_test_view",
+          data: { error: (err as any)?.message || String(err) },
+        },
+      ]);
     }
   }, [flagMetadata, flagKey, visitorId]);
+
+
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
   const [showTextInput, setShowTextInput] = useState(false);
   const [showLogs, setShowLogs] = useState(true);
+  const [clientLogs, setClientLogs] = useState<LogEntry[]>([]);
+  const allLogs = [...flagshipLogs, ...clientLogs];
 
   useEffect(() => {
     if (customAccountValue) {
@@ -359,7 +381,7 @@ export default function Index() {
             </div>
             <div className="flex items-center space-x-2 text-xs text-gray-400">
               <span className="px-2 py-1 bg-gray-800 rounded">
-                {flagshipLogs.length} entries
+                {allLogs.length} entries
               </span>
             </div>
           </div>
@@ -367,7 +389,7 @@ export default function Index() {
             onClick={() => setShowLogs(!showLogs)}
             className="flex items-center space-x-2 px-3 py-1.5 text-xs font-medium text-gray-300 hover:text-white bg-gray-800 hover:bg-gray-700 rounded-md transition-colors duration-150"
           >
-            <span>{showLogs ? 'Hide' : 'Show'} Logs</span>
+            <span>{showLogs ? 'Hide' : 'Show'} Logs [Press L]</span>
             <svg
               className={`w-4 h-4 transition-transform duration-200 ${showLogs ? 'rotate-180' : ''}`}
               fill="none"
@@ -387,7 +409,7 @@ export default function Index() {
               className="overflow-y-auto px-3 py-3 flex-grow min-h-[300px] max-h-[30vh]"
               style={{ scrollbarGutter: 'stable' }} // avoid layout shift when scrollbar appears
             >
-              {flagshipLogs.length === 0 ? (
+              {allLogs.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
                   <svg
                     className="w-10 h-10 mb-3 text-gray-600"
@@ -409,7 +431,7 @@ export default function Index() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-800">
-                  {flagshipLogs.slice().reverse().map((log, index) => (
+                  {allLogs.slice().reverse().map((log, index) => (
                     <article
                       key={index}
                       className="p-2 hover:bg-gray-900 rounded-md focus-within:ring-2 focus-within:ring-indigo-500"
@@ -418,7 +440,7 @@ export default function Index() {
                     >
                       <div>
                         <p className="text-green-400 text-sm font-mono break-words">
-                          [{/* client-only time */}<ClientTime iso={log.timestamp} />] [{log.level}] {log.message}
+                          [{/* client-only time */} <ClientTime iso={log.timestamp} />] [{log.level}] {log.message}
                         </p>
 
                         {log.data && (
@@ -434,9 +456,9 @@ export default function Index() {
                       </div>
                     </article>
                   ))}
-
                 </div>
               )}
+
             </div>
           </section>
         )}
