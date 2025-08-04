@@ -312,6 +312,39 @@ export default function Index() {
     });
   };
 
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Avoid triggering when user is typing in form fields
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e as any).isComposing
+      ) {
+        return;
+      }
+
+      const key = e.key.toLowerCase();
+
+      // Plain "L" toggles logs
+      if (key === "l" && !e.shiftKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowLogs((prev) => !prev);
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + L also toggles
+      const isModifier = e.metaKey || e.ctrlKey;
+      if (isModifier && e.shiftKey && key === "l") {
+        e.preventDefault();
+        setShowLogs((prev) => !prev);
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
       {/* Developer Logs Section */}
@@ -319,9 +352,7 @@ export default function Index() {
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
-              <svg className="w-5 h-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V8zm0 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1v-2z" clipRule="evenodd" />
-              </svg>
+              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse m-1"></div>
               <h2 className="text-sm font-mono font-semibold text-white">
                 Server Logs
               </h2>
@@ -407,32 +438,6 @@ export default function Index() {
                 </div>
               )}
             </div>
-            {flagshipLogs.length > 0 && (
-              <footer className="border-t border-gray-700 bg-gray-900 px-6 py-3 flex items-center text-xs text-gray-400 flex-shrink-0">
-                {/* Add other footer elements here if needed */}
-                <button
-                  onClick={() => window.location.reload()}
-                  className="ml-auto flex items-center space-x-2 hover:text-gray-300 transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-indigo-500 rounded"
-                  aria-label="Refresh logs"
-                >
-                  <svg
-                    className="w-4 h-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                    />
-                  </svg>
-                  <span>Refresh</span>
-                </button>
-              </footer>
-            )}
           </section>
         )}
       </div>
