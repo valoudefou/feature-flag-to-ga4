@@ -143,6 +143,12 @@ export const loader: LoaderFunction = async ({ request }) => {
       await visitor.fetchFlags();
     }
 
+    // Update visitor context with URL params if any
+    if (Object.keys(contextParams).length > 0) {
+      visitor.updateContext(contextParams);
+      await visitor.fetchFlags();
+    }
+
     const flag = visitor.getFlag("flagProductRecs");
     const fallbackFlagValue = flag?.getValue("07275641-4a2e-49b2-aa5d-bb4b7b8b2a4c");
     const flagValue = customFlagValue || fallbackFlagValue;
@@ -370,7 +376,7 @@ export default function Index() {
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
       {/* Developer Logs Section */}
-      <div className="bg-gray-900 border-b border-gray-700">
+      <div className="bg-gray-900 border-b-2 border-green-400">
         <div className="flex items-center justify-between px-6 py-3">
           <div className="flex items-center space-x-3">
             <div className="flex items-center space-x-2">
