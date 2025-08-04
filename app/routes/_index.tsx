@@ -26,13 +26,39 @@ type Props = {
   flagshipLogs: LogEntry[];
 };
 
-const formatTimestamp = (iso: string) => {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) {
-    return new Date().toLocaleTimeString('en-GB', { hour12: false });
-  }
-  return d.toLocaleTimeString('en-GB', { hour12: false });
-};
+
+
+function ClientTime({ iso }: { iso: string }) {
+  const [formatted, setFormatted] = useState<string>("--:--:--");
+
+  useEffect(() => {
+    const formatter = new Intl.DateTimeFormat("en-GB", {
+      hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      timeZone: "Europe/London",
+      timeZoneName: "short",
+    });
+
+    if (!iso) {
+      console.warn("ClientTime: no iso passed", iso);
+      setFormatted(formatter.format(new Date()));
+      return;
+    }
+
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) {
+      console.warn("ClientTime: invalid timestamp:", iso);
+      setFormatted(formatter.format(new Date()));
+    } else {
+      setFormatted(formatter.format(d));
+    }
+  }, [iso]);
+
+  return <>{formatted}</>;
+
+}
 
 interface LoaderData {
   products: Product[];
@@ -114,7 +140,6 @@ export const loader: LoaderFunction = async ({ request }) => {
 
     // Update visitor context with URL params if any
     if (Object.keys(contextParams).length > 0) {
-      visitor.updateContext(contextParams);
       await visitor.fetchFlags();
     }
 
@@ -287,8 +312,6 @@ export default function Index() {
     });
   };
 
-
-
   return (
     <main className="min-h-screen flex flex-col bg-gray-50">
       {/* Developer Logs Section */}
@@ -307,7 +330,6 @@ export default function Index() {
               <span className="px-2 py-1 bg-gray-800 rounded">
                 {flagshipLogs.length} entries
               </span>
-
             </div>
           </div>
           <button
@@ -325,7 +347,6 @@ export default function Index() {
             </svg>
           </button>
         </div>
-
         {showLogs && (
           <section
             aria-label="Flagship Logs"
@@ -357,39 +378,35 @@ export default function Index() {
                 </div>
               ) : (
                 <div className="divide-y divide-gray-800">
-                  {flagshipLogs.slice().reverse().map((log, index) => {
-                    const timestamp = formatTimestamp(log.timestamp);
+                  {flagshipLogs.slice().reverse().map((log, index) => (
+                    <article
+                      key={index}
+                      className="p-2 hover:bg-gray-900 rounded-md focus-within:ring-2 focus-within:ring-indigo-500"
+                      role="listitem"
+                      tabIndex={0}
+                    >
+                      <div>
+                        <p className="text-green-400 text-sm font-mono break-words">
+                          [{/* client-only time */}<ClientTime iso={log.timestamp} />] [{log.level}] {log.message}
+                        </p>
 
-                    return (
-                      <article
-                        key={index}
-                        className="p-2 hover:bg-gray-900 rounded-md focus-within:ring-2 focus-within:ring-indigo-500"
-                        role="listitem"
-                        tabIndex={0}
-                      >
-                        <div>
-                          <p className="text-green-400 text-sm font-mono break-words">
-                            [{timestamp}] [{log.level}] {log.message}
-                          </p>
+                        {log.data && (
+                          <details className="mt-2" aria-live="polite">
+                            <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
+                              View data
+                            </summary>
+                            <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700 whitespace-pre-wrap max-h-48">
+                              {JSON.stringify(log.data, null, 2)}
+                            </pre>
+                          </details>
+                        )}
+                      </div>
+                    </article>
+                  ))}
 
-                          {log.data && (
-                            <details className="mt-2" aria-live="polite">
-                              <summary className="text-xs text-gray-400 cursor-pointer hover:text-gray-300 select-none">
-                                View data
-                              </summary>
-                              <pre className="mt-2 p-3 bg-gray-900 rounded-md text-xs text-gray-300 overflow-x-auto border border-gray-700 whitespace-pre-wrap max-h-48">
-                                {JSON.stringify(log.data, null, 2)}
-                              </pre>
-                            </details>
-                          )}
-                        </div>
-                      </article>
-                    );
-                  })}
                 </div>
               )}
             </div>
-
             {flagshipLogs.length > 0 && (
               <footer className="border-t border-gray-700 bg-gray-900 px-6 py-3 flex items-center text-xs text-gray-400 flex-shrink-0">
                 {/* Add other footer elements here if needed */}
@@ -418,15 +435,11 @@ export default function Index() {
             )}
           </section>
         )}
-
-
       </div>
 
       {/* Recommendations Block */}
       <section aria-label="Product recommendations" className="p-8 py-10 flex flex-col">
-
         <h1 className="py-4 px-4 text-3xl font-bold mb-4 text-gray-900">{blockName}</h1>
-
         <div className="relative">
           {/* Gradient overlays for fade effect */}
           <div
@@ -640,7 +653,6 @@ export default function Index() {
             </form>
           )}
         </div>
-
       </section>
     </main>
   );
