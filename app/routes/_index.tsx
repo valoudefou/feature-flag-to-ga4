@@ -26,8 +26,6 @@ type Props = {
   flagshipLogs: LogEntry[];
 };
 
-
-
 function ClientTime({ iso }: { iso: string }) {
   const [formatted, setFormatted] = useState<string>("--:--:--");
 
@@ -72,6 +70,7 @@ interface LoaderData {
     campaignId?: string;
     campaignName?: string;
     campaignType?: string;
+    variationName?: string;
   };
   flagshipLogs: LogEntry[];
 }
@@ -190,6 +189,7 @@ export const loader: LoaderFunction = async ({ request }) => {
       campaignId: flag?.metadata.campaignId,
       campaignName: flag?.metadata.campaignName,
       campaignType: flag?.metadata.campaignType,
+      variationName: flag?.metadata.variationName
     };
 
     // Get flagship logs
@@ -208,6 +208,7 @@ export const loader: LoaderFunction = async ({ request }) => {
           campaignId: flagMetadata.campaignId,
           campaignName: flagMetadata.campaignName,
           campaignType: flagMetadata.campaignType,
+          variationName: flag?.metadata.variationName
         },
         flagshipLogs,
       },
@@ -260,6 +261,7 @@ export default function Index() {
         campaign_name: flagMetadata.campaignName,
         campaign_type: flagMetadata.campaignType,
         flag_key: flagKey,
+        flag_value: flagMetadata.variationName,
         visitor_id: visitorId,
       };
 
@@ -286,8 +288,6 @@ export default function Index() {
       ]);
     }
   }, [flagMetadata, flagKey, visitorId]);
-
-
 
   const carouselRef = useRef<HTMLDivElement>(null);
   const [account, setAccount] = useState(customAccountValue || undefined);
