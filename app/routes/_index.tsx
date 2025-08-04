@@ -269,7 +269,7 @@ export default function Index() {
         ...prev,
         {
           timestamp: new Date().toISOString(),
-          level: "info",
+          level: "INFO",
           message: "Sent GA4 event ab_test_view",
           data: eventData,
         },
