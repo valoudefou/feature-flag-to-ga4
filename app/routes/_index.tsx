@@ -639,53 +639,26 @@ export default function Index() {
                   defaultValue={flagValue ?? ""}
                   className="w-full px-3 py-2.5 text-sm border border-gray-200 rounded-lg bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all outline-none font-mono"
                 >
-                  <option value="c52966e1-9e34-4d03-b591-8c03ccc3883e">
-                    c52966e1...c3883e
+                  <option value="9174ac6d-6b74-4234-b412-7d2d0d4acdad">
+                    9174ac6d...4acdad
                   </option>
-                  <option value="dd8f4ea1-f9cb-49b2-b442-639a94ac91c4">
-                    dd8f4ea1...c91c4
-                  </option>
-                  <option value="409e97c1-c4cc-4945-a12f-cff135ae94cd">
-                    409e97c1...e94cd
-                  </option>
-                  <option value="00008874-8d65-4a29-ad9c-1f95ca398c0e">
-                    00008874...98c0e
-                  </option>
-                  <option value="faaa3a6a-8573-43b0-af4b-67adf8718ad8">
-                    faaa3a6a...18ad8
-                  </option>
-                  <option value="99402050-f965-4990-a3ee-cd00aa0272cd">
-                    99402050...272cd
-                  </option>
-                  <option value="f2ee3fb9-dca1-43b6-9cbc-1c5422da53a4">
-                    f2ee3fb9...53a4
-                  </option>
-                  <option value="b8ea4858-f1dd-4c36-a89a-53dc75d0886e">
-                    b8ea4858...886e
-                  </option>
-                  <option value="b70321bf-f9b7-4d52-9e1c-adda8fe76483">
-                    b70321bf...6483
-                  </option>
-                  <option value="b3ca63ed-b110-4113-9d3f-65acb7d0225f">
-                    b3ca63ed...225f
-                  </option>
-                  <option value="7bf26d11-6bbb-4324-bc06-13e64a94d487">
-                    7bf26d11...d487
+                  <option value="b7c76816-dcf3-4c0c-9023-a80a3a348151">
+                    b7c76816...348151
                   </option>
                   <option value="b24cc1cb-bf79-4784-b23b-0a66b3593509">
-                    b24cc1cb...3509
+                    b24cc1cb...593509
                   </option>
                   <option value="e5570bbc-9f91-48ec-b0ec-5d6ab941e402">
-                    e5570bbc...e402
-                  </option>
-                  <option value="9174ac6d-6b74-4234-b412-7d2d0d4acdad">
-                    9174ac6d...acdad
+                    e5570bbc...41e402
                   </option>
                   <option value="875bb146-4a9c-4e26-ab67-02b2ccb87ca1">
-                    875bb146...7ca1
+                    875bb146...cb87ca1
                   </option>
                   <option value="07275641-4a2e-49b2-aa5d-bb4b7b8b2a4c">
-                    07275641...2a4c
+                    07275641...8b2a4c
+                  </option>
+                  <option value="2e2c9992-2c5d-466a-bded-71cb2a059730">
+                    2e2c9992...059730
                   </option>
                 </select>
               </div>
