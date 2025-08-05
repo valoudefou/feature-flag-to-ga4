@@ -386,11 +386,6 @@ export default function Index() {
                 Server Logs
               </h2>
             </div>
-            <div className="flex items-center space-x-2 text-xs text-gray-400">
-              <span className="px-2 py-1 bg-gray-800 rounded">
-                {allLogs.length} entries
-              </span>
-            </div>
           </div>
           <button
             onClick={() => setShowLogs(!showLogs)}
